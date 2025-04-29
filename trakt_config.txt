@@ -1,0 +1,27 @@
+# Your Trakt Client ID
+YOUR_CLIENT_ID
+
+# Your Trakt Client Secret
+YOUR_CLIENT_SECRET
+
+# Your Trakt Username
+YOUR_USERNAME
+
+# Your Trakt Movie List (slug, not the title)
+YOUR_MOVIE_LIST_SLUG
+
+# Your Trakt Show List (slug, not the title)
+YOUR_SHOW_LIST_SLUG
+
+# Your Plex Server URL (example: http://localhost:32400)
+http://localhost:32400
+
+# Your Plex Token
+YOUR_PLEX_TOKEN
+
+# Your Plex Movies Playlist Name
+Movies Playlist
+
+# Your Plex Shows Playlist Name
+Shows Playlist
+
