@@ -1,70 +1,39 @@
-import requests
-import webbrowser
+#!/usr/bin/env python3
+"""
+Trakt OAuth Setup Script
+"""
+import requests, webbrowser, os, sys
 from urllib.parse import urlencode
-import os
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+USE_ENV=False
 
-CLIENT_ID = os.getenv("TRAKT_CLIENT_ID")
-CLIENT_SECRET = os.getenv("TRAKT_CLIENT_SECRET")
-REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
+if USE_ENV:
+    from dotenv import load_dotenv
+    load_dotenv()
+    CLIENT_ID=os.getenv("TRAKT_CLIENT_ID")
+    CLIENT_SECRET=os.getenv("TRAKT_CLIENT_SECRET")
+else:
+    if not os.path.exists("trakt_config.txt"):
+        print("Error: missing trakt_config.txt"); sys.exit(1)
+    with open("trakt_config.txt") as f:
+        lines=[l.strip() for l in f if l.strip() and not l.startswith("#")]
+    CLIENT_ID,CLIENT_SECRET=lines[:2]
 
-if not CLIENT_ID or not CLIENT_SECRET:
-    print("❌ Error: CLIENT_ID and CLIENT_SECRET must be set in the .env file.")
-    exit(1)
+if not CLIENT_ID or not CLIENT_SECRET: sys.exit("Client ID/Secret missing")
 
-# Step 1: Build the authorization URL to get the code
-params = {
-    "response_type": "code",
-    "client_id": CLIENT_ID,
-    "redirect_uri": REDIRECT_URI
-}
-authorize_url = f"https://trakt.tv/oauth/authorize?{urlencode(params)}"
+REDIRECT="urn:ietf:wg:oauth:2.0:oob"
+url="https://trakt.tv/oauth/authorize?"+urlencode({"response_type":"code","client_id":CLIENT_ID,"redirect_uri":REDIRECT})
+print("Open URL:",url)
+webbrowser.open(url)
 
-print("🔗 Open the following URL in your browser to authorize your Trakt account:")
-print(authorize_url)
-try:
-    webbrowser.open(authorize_url)
-except:
-    print("⚠️ Could not open browser. Please manually copy and paste the URL above.")
+code=input("Code: ").strip()
+if not code: sys.exit("No code")
 
-# Step 2: Ask user to paste the code from the browser
-code = input("📋 Paste the code from the URL here: ").strip()
-
-if not code:
-    print("❌ Error: No code provided.")
-    exit(1)
-
-# Step 3: Exchange the code for an access token
-token_url = "https://api.trakt.tv/oauth/token"
-data = {
-    "code": code,
-    "client_id": CLIENT_ID,
-    "client_secret": CLIENT_SECRET,
-    "redirect_uri": REDIRECT_URI,
-    "grant_type": "authorization_code"
-}
-
-try:
-    response = requests.post(token_url, json=data)
-    response.raise_for_status()
-    token_info = response.json()
-
-    print("✅ OAuth successful. Here is your token info:")
-    print(token_info)
-
-    # Optional: Automatically update .env file with access token
-    with open(".env", "a") as f:
-        f.write(f"\nTRAKT_ACCESS_TOKEN={token_info['access_token']}\n")
-    print("✅ Access token added to .env file.")
-
-except requests.exceptions.RequestException as e:
-    print("❌ Error during token request:", str(e))
-    if response is not None:
-        try:
-            print("Details:", response.json())
-        except:
-            pass
-    exit(1)
+resp=requests.post("https://api.trakt.tv/oauth/token",json={
+    "code":code,"client_id":CLIENT_ID,"client_secret":CLIENT_SECRET,
+    "redirect_uri":REDIRECT,"grant_type":"authorization_code"
+})
+if resp.status_code!=200: sys.exit("OAuth failed: "+resp.text)
+token=resp.json().get("access_token")
+with open("trakt_access_token.txt","w") as f: f.write(token)
+print("Saved token")
