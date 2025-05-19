@@ -1,39 +1,51 @@
-#!/usr/bin/env python3
-"""
-Trakt OAuth Setup Script
-"""
-import requests, webbrowser, os, sys
-from urllib.parse import urlencode
+import requests
+import time
+import json
+import os
 
-USE_ENV=False
+CONFIG_FILE = "trakt_config.txt"
+TOKEN_FILE = "trakt_token.json"
 
-if USE_ENV:
-    from dotenv import load_dotenv
-    load_dotenv()
-    CLIENT_ID=os.getenv("TRAKT_CLIENT_ID")
-    CLIENT_SECRET=os.getenv("TRAKT_CLIENT_SECRET")
-else:
-    if not os.path.exists("trakt_config.txt"):
-        print("Error: missing trakt_config.txt"); sys.exit(1)
-    with open("trakt_config.txt") as f:
-        lines=[l.strip() for l in f if l.strip() and not l.startswith("#")]
-    CLIENT_ID,CLIENT_SECRET=lines[:2]
+def load_config():
+    # Past bij jouw config: ID = regel 1, Secret = regel 2
+    with open(CONFIG_FILE, "r") as f:
+        lines = [
+            line.strip() for line in f.readlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+    if len(lines) < 2:
+        print("❌ trakt_config.txt must contain at least Client ID and Secret.")
+        exit(1)
+    return lines[0], lines[1]
 
-if not CLIENT_ID or not CLIENT_SECRET: sys.exit("Client ID/Secret missing")
+def main():
+    client_id, client_secret = load_config()
+    redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
 
-REDIRECT="urn:ietf:wg:oauth:2.0:oob"
-url="https://trakt.tv/oauth/authorize?"+urlencode({"response_type":"code","client_id":CLIENT_ID,"redirect_uri":REDIRECT})
-print("Open URL:",url)
-webbrowser.open(url)
+    print(f"Open URL: https://trakt.tv/oauth/authorize?response_type=code&client_id={client_id}&redirect_uri={redirect_uri.replace(':','%3A')}")
+    code = input("Code: ").strip()
 
-code=input("Code: ").strip()
-if not code: sys.exit("No code")
+    token_url = "https://api.trakt.tv/oauth/token"
+    payload = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code"
+    }
 
-resp=requests.post("https://api.trakt.tv/oauth/token",json={
-    "code":code,"client_id":CLIENT_ID,"client_secret":CLIENT_SECRET,
-    "redirect_uri":REDIRECT,"grant_type":"authorization_code"
-})
-if resp.status_code!=200: sys.exit("OAuth failed: "+resp.text)
-token=resp.json().get("access_token")
-with open("trakt_access_token.txt","w") as f: f.write(token)
-print("Saved token")
+    resp = requests.post(token_url, json=payload)
+    if resp.status_code != 200:
+        print(f"❌ Trakt auth failed: {resp.status_code} {resp.text}")
+        exit(1)
+    data = resp.json()
+    # Voeg aanmaak-tijd toe zodat refresh werkt
+    data["created_at"] = int(time.time())
+
+    # Sla tokens op in JSON-bestand
+    with open(TOKEN_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"✅ Token saved to {TOKEN_FILE}")
+
+if __name__ == "__main__":
+    main()
