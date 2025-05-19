@@ -15,6 +15,7 @@ This Python tool automatically synchronizes your custom movie and show lists fro
 - ✅ Handle Trakt Rate Limits automatically
 - ✅ Configurable via config file or .env
 - ✅ Full Debug options
+- ✅ Telegram Notifications
 
 ---
 
@@ -26,6 +27,7 @@ TraktSyncConfFile/
 ├── Trakt_OAuth_Setup.py
 ├── trakt_config.txt
 ├── trakt_access_token.txt
+├── trakt_auth.py
 ├── .env.example
 ├── requirements.txt
 ├── setup.sh
@@ -67,6 +69,10 @@ your-plex-token
 Your Plex Movie Playlist
 # Plex Show Playlist
 Your Plex Show Playlist
+# (Optional) Telegram Bot Token for notifications Format: 123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+YOUR_TELEGRAM_BOT_TOKEN
+# (Optional) Telegram Chat ID for notifications Format: 123456789 or -123456789 for groups
+YOUR_TELEGRAM_CHAT_ID
 ```
 
 ### Option 2: .env
